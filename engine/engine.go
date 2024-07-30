@@ -72,7 +72,7 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 				coalesce(time_cronjob :: TIME(0) :: STRING, '') AS time_cronjob,
 				coalesce(created_at :: TIMESTAMP(0) :: STRING, '') AS created_at,
 				coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at
-				FROM db_myfuso.custom_notification where id = '63f65c03-1d60-46bd-816c-5468c9d94d79'`
+				FROM db_myfuso.custom_notification`
 
 	db, _ := ConnectionCockroachDB()
 
