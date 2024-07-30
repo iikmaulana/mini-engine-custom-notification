@@ -72,7 +72,7 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 				coalesce(time_cronjob :: TIME(0) :: STRING, '') AS time_cronjob,
 				coalesce(created_at :: TIMESTAMP(0) :: STRING, '') AS created_at,
 				coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at
-				FROM db_myfuso.custom_notification`
+				FROM db_myfuso.custom_notification where id = '63f65c03-1d60-46bd-816c-5468c9d94d79'`
 
 	db, _ := ConnectionCockroachDB()
 
@@ -96,18 +96,10 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 	for _, v := range tmpData {
 		if v.Category == "onetime" {
 			tmpNow := uttime.Now()
-			tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
-			start, _ := uttime.ParseFromString(tmpStart)
 			tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
 			endDate, _ := uttime.ParseFromString(tmpEnd)
-			nextDay := start
-			hasNextDay := nextDay.Before(endDate)
-			for tmpNow.After(nextDay) && hasNextDay {
-				nextDay = nextDay.AddDate(0, 0, 1)
-				hasNextDay = nextDay.Before(endDate)
-			}
-			if hasNextDay {
-				v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
+			if tmpNow.Before(endDate) {
+				v.PengirimanBerikutnya = endDate.Format("2006-01-02")
 			}
 		} else if v.Category == "periodic" {
 			if v.Frekuensi == "harian" {
