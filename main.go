@@ -91,9 +91,16 @@ func runCront(tmpId string) {
 		SkipDB:           &tmpSkipDB,
 	}
 
-	_, err := engine.SendNotification(tmpFormNotif)
-	if err != nil {
-		fmt.Println(err.Error())
+	if tmpFormNotif.CreatedAt != "" {
+		_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormNotif.CreatedAt)
+		if errx != nil {
+			fmt.Println(errx.Error())
+		} else {
+			_, err := engine.SendNotification(tmpFormNotif)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormNotif.CreatedAt))
+		}
 	}
-	fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormNotif.CreatedAt))
 }
