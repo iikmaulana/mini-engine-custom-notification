@@ -34,11 +34,13 @@ func main() {
 }
 
 func tmpCront() {
+	fmt.Println(fmt.Sprintf("Date : %s", uttime.Now().Format("2006-01-02")))
 
 	tmpTime := map[string]string{}
 	tmpData, _ := engine.GetListCustomNotification()
 	for _, v := range tmpData {
 		tmpTime[v.Id] = fmt.Sprintf("%s %s", v.PengirimanBerikutnya, v.TimeCronjob)
+		fmt.Println(fmt.Sprintf("%s ===> %s", v.Id, fmt.Sprintf("%s %s", v.PengirimanBerikutnya, v.TimeCronjob)))
 	}
 
 	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
