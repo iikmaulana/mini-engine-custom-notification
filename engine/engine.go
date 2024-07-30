@@ -208,18 +208,10 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 	for _, v := range tmpData {
 		if v.Category == "onetime" {
 			tmpNow := uttime.Now()
-			tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
-			start, _ := uttime.ParseFromString(tmpStart)
 			tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
 			endDate, _ := uttime.ParseFromString(tmpEnd)
-			nextDay := start
-			hasNextDay := nextDay.Before(endDate)
-			for tmpNow.After(nextDay) && hasNextDay {
-				nextDay = nextDay.AddDate(0, 0, 1)
-				hasNextDay = nextDay.Before(endDate)
-			}
-			if hasNextDay {
-				v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
+			if tmpNow.Before(endDate) {
+				v.PengirimanBerikutnya = endDate.Format("2006-01-02")
 			}
 		} else if v.Category == "periodic" {
 			if v.Frekuensi == "harian" {

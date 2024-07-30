@@ -56,6 +56,7 @@ func tmpCront() {
 		})
 	}
 	scheduler.Run()
+	//runCront("63f65c03-1d60-46bd-816c-5468c9d94d79")
 }
 
 func runCront(tmpId string) {
