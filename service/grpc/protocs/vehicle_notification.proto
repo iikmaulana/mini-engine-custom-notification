@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option go_package = ".;packets";
+
+package packets;
+
+import "google/protobuf/any.proto";
+
+message NotificationByID {
+    string IdNotificacion = 1;
+    string Imei = 2;
+}
+
+message GetNotificationRequest {
+    google.protobuf.Any Data = 1;
+}
+
+message SendNotificationRequest {
+    google.protobuf.Any Data = 1;
+}
+
+message OutputNotification {
+    int32 Status = 1;
+    google.protobuf.Any Data = 2;
+}
+
+message DismissAbnormal {
+    string Id = 1;
+    string Imei = 2;
+}
+
+service Notification {
+    rpc GetNotificationByIdAndImeiUsecase(NotificationByID) returns(OutputNotification){}
+    rpc SendNotificationUsecase(SendNotificationRequest) returns(OutputNotification){}
+    rpc GetListNotificationUsecase(GetNotificationRequest) returns(OutputNotification){}
+    rpc DismissAbnormalUsecase(DismissAbnormal) returns(OutputNotification){}
+}
