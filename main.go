@@ -90,9 +90,9 @@ func runCront(tmpId string) {
 		SkipDB:           &tmpSkipDB,
 	}
 
-	res, err := engine.SendNotification(tmpFormNotif)
+	_, err := engine.SendNotification(tmpFormNotif)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	fmt.Println(res)
+	fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormNotif.CreatedAt))
 }
