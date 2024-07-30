@@ -207,7 +207,8 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 	tmpArr := []models.CustomNotificationResult{}
 	for _, v := range tmpData {
 		if v.Category == "onetime" {
-			tmpNow := uttime.Now()
+			duration := 30 * time.Second
+			tmpNow := uttime.Now().Add(-duration)
 			tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
 			endDate, _ := uttime.ParseFromString(tmpEnd)
 			if tmpNow.Before(endDate) {
@@ -215,7 +216,8 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 			}
 		} else if v.Category == "periodic" {
 			if v.Frekuensi == "harian" {
-				tmpNow := uttime.Now()
+				duration := 30 * time.Second
+				tmpNow := uttime.Now().Add(-duration)
 				tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
 				start, _ := uttime.ParseFromString(tmpStart)
 				tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
@@ -230,7 +232,8 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 					v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
 				}
 			} else if v.Frekuensi == "mingguan" {
-				tmpNow := uttime.Now()
+				duration := 30 * time.Second
+				tmpNow := uttime.Now().Add(-duration)
 				tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
 				start, _ := uttime.ParseFromString(tmpStart)
 				tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
@@ -245,7 +248,8 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 					v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
 				}
 			} else if v.Frekuensi == "bulanan" {
-				tmpNow := uttime.Now()
+				duration := 30 * time.Second
+				tmpNow := uttime.Now().Add(-duration)
 				tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
 				start, _ := uttime.ParseFromString(tmpStart)
 				tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
