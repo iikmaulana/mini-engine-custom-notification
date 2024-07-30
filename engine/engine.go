@@ -278,17 +278,9 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 		tmpArr = append(tmpArr, v)
 	}
 
-	tmpRes := []models.CustomNotificationResult{}
 	for _, v := range tmpArr {
-		if v.PengirimanBerikutnya != "-" {
-			tmpRes = append(tmpRes, v)
-		}
-	}
-
-	for _, v := range tmpRes {
 		result = v
 	}
-
 	defer db.Close()
 	return result, nil
 }
