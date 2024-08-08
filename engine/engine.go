@@ -312,3 +312,26 @@ func SendNotification(form models.NotificationRequest) (result string, serr serr
 
 	return result, nil
 }
+
+func GetTokenFirebase() (result []string, serr serror.SError) {
+	tmpQuery := `SELECT token from db_myfuso.firebase_token`
+
+	db, _ := ConnectionCockroachDB()
+	rows, err := db.Queryx(tmpQuery)
+	if err != nil {
+		return result, serror.NewFromError(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var tmpResult string
+		if err := rows.Scan(&tmpResult); err != nil {
+			fmt.Println(err.Error())
+			return result, serror.New("Failed scan for struct models")
+		}
+		result = append(result, tmpResult)
+	}
+
+	return result, nil
+}

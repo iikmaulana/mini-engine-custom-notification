@@ -1,19 +1,25 @@
 package main
 
 import (
-	"fmt"
-	"github.com/iikmaulana/mini-engine/engine"
+	"context"
 	"github.com/iikmaulana/mini-engine/lib"
 	"github.com/iikmaulana/mini-engine/models"
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 	"github.com/robfig/cron/v3"
-	"github.com/uzzeet/uzzeet-gateway/libs/utils/uttime"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	//"encoding/json"
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/messaging"
+	"fmt"
+	"github.com/iikmaulana/mini-engine/engine"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"github.com/uzzeet/uzzeet-gateway/libs/utils/uttime"
+	"google.golang.org/api/option"
+	"log"
 )
 
 func main() {
@@ -69,15 +75,15 @@ func runCront(tmpId string) {
 	case "promosi":
 		tmpTitle = "Promosi"
 		tmpType = "promo_myfuso"
-		tmpText = fmt.Sprintf(`{"id":"%s","text":"%s","cover_image":"%s"}`, tmpCustomNotif.Id, tmpCustomNotif.Title, tmpCustomNotif.LinkImageWeb)
+		tmpText = fmt.Sprintf(`{"id":"%s","text":"%s","cover_image":"%s","description":"%s","link_web":"%s"}`, tmpCustomNotif.Id, tmpCustomNotif.Title, tmpCustomNotif.LinkImageWeb, tmpCustomNotif.Description, tmpCustomNotif.LinkWeb)
 	case "aktivitas":
 		tmpTitle = "Aktivitas"
-		tmpType = "aktivitas_myfuso"
-		tmpText = fmt.Sprintf(`{"id":"%s","text":"%s","cover_image":"%s"}`, tmpCustomNotif.Id, tmpCustomNotif.Title, tmpCustomNotif.LinkImageWeb)
+		tmpType = "activity_myfuso"
+		tmpText = fmt.Sprintf(`{"id":"%s","text":"%s","cover_image":"%s","description":"%s","link_web":"%s"}`, tmpCustomNotif.Id, tmpCustomNotif.Title, tmpCustomNotif.LinkImageWeb, tmpCustomNotif.Description, tmpCustomNotif.LinkWeb)
 	default:
 		tmpTitle = "Informasi"
 		tmpType = "info_myfuso"
-		tmpText = fmt.Sprintf(`{"id":"%s","text":"%s","cover_image":"%s"}`, tmpCustomNotif.Id, tmpCustomNotif.Title, tmpCustomNotif.LinkImageWeb)
+		tmpText = fmt.Sprintf(`{"id":"%s","text":"%s","cover_image":"%s","description":"%s","link_web":"%s"}`, tmpCustomNotif.Id, tmpCustomNotif.Title, tmpCustomNotif.LinkImageWeb, tmpCustomNotif.Description, tmpCustomNotif.LinkWeb)
 	}
 
 	tmpSkipDB := false
@@ -101,6 +107,64 @@ func runCront(tmpId string) {
 				fmt.Println(err.Error())
 			}
 			fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormNotif.CreatedAt))
+			_, _ = SendingFCMContent(tmpType, tmpTitle, tmpFormNotif.ID, tmpFormNotif.Title, tmpText)
 		}
 	}
+	//_, _ = SendingFCMContent(tmpType, tmpTitle, tmpCustomNotif.Id, tmpFormNotif.Title, tmpText)
+}
+
+func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifId, tmpTitleCustom, tmpText string) (result string, err error) {
+
+	ctx := context.Background()
+	opt := option.WithCredentialsFile("my-fuso-81375-firebase-adminsdk-aihny-c26072971b.json")
+
+	app, err := firebase.NewApp(ctx, nil, opt)
+	if err != nil {
+		log.Fatalf("error initializing app: %v", err)
+	}
+
+	client, err := app.Messaging(ctx)
+	if err != nil {
+		log.Fatalf("error getting Messaging client: %v", err)
+	}
+
+	tmpTopic := os.Getenv("FCM_TOPIC")
+	tmpToken, _ := engine.GetTokenFirebase()
+	if len(tmpToken) > 0 {
+		_, errx := client.SubscribeToTopic(ctx, tmpToken, tmpTopic)
+		if errx != nil {
+			log.Fatalf("error getting Messaging client: %v", err)
+		}
+
+		tmpLink := fmt.Sprintf("%s/?globalNotifId=%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifId)
+
+		message := &messaging.Message{
+			Topic: tmpTopic,
+			Data: map[string]string{
+				"environment":     os.Getenv("FCM_ENVIRONMENT"),
+				"id_custom_notif": tmpCustomeNotifId,
+				"title":           tmpTitle,
+				"type_name":       tmpType,
+				"text":            tmpText,
+			},
+			Webpush: &messaging.WebpushConfig{
+				Notification: &messaging.WebpushNotification{
+					Title: tmpTitle,
+					Body:  tmpTitleCustom,
+					Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
+				},
+				FCMOptions: &messaging.WebpushFCMOptions{
+					Link: tmpLink,
+				},
+			},
+		}
+
+		response, err := client.Send(ctx, message)
+		if err != nil {
+			log.Fatalf("error sending message: %v", err)
+		}
+
+		fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
+	}
+	return "", nil
 }
