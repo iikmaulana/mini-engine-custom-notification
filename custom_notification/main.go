@@ -1,4 +1,4 @@
-package custom_notification
+package main
 
 import (
 	"context"
