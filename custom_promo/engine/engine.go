@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/gearintellix/u2"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/iikmaulana/mini-engine/models"
-	"github.com/iikmaulana/mini-engine/service/grpc/packets"
+	models2 "github.com/iikmaulana/mini-engine/custom_promo/models"
+	packets2 "github.com/iikmaulana/mini-engine/custom_promo/service/grpc/packets"
 	"github.com/jmoiron/sqlx"
 	"github.com/uzzeet/uzzeet-gateway/libs"
 	"github.com/uzzeet/uzzeet-gateway/libs/helper"
@@ -57,22 +57,23 @@ func ConnectionCockroachDB() (*sqlx.DB, serror.SError) {
 	return db, nil
 }
 
-func GetListCustomNotification() (result []models.CustomNotificationResult, serr serror.SError) {
+func GetListCustomPromo() (result []models2.PromoResult, serr serror.SError) {
 	tmpQuery := `SELECT 
-				id, 
-				link_image, 
-				title, 
-				description, 
-				category, 
-				link_web, 
-				type_notification, 
-				frekuensi,
-				coalesce(start_date :: TIMESTAMP(0) :: STRING, '') AS start_date,
-				coalesce(end_date :: TIMESTAMP(0) :: STRING, '') AS end_date,
-				coalesce(time_cronjob :: TIME(0) :: STRING, '') AS time_cronjob,
-				coalesce(created_at :: TIMESTAMP(0) :: STRING, '') AS created_at,
-				coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at
-				FROM db_myfuso.custom_notification`
+					id, 
+					link_image, 
+					title, 
+					description, 
+					type_promo, 
+					target_promo, 
+					coalesce(start_date :: TIMESTAMP(0) :: STRING, '') AS start_date,
+					coalesce(end_date :: TIMESTAMP(0) :: STRING, '') AS end_date,
+					status_popup,
+					status_notif,
+					frekuensi,
+					coalesce(time_cronjob :: TIME(0) :: STRING, '') AS time_cronjob,
+					coalesce(created_at :: TIMESTAMP(0) :: STRING, '') AS created_at,
+					coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at
+					FROM db_myfuso.custom_promo where status_notif = '1'`
 
 	db, _ := ConnectionCockroachDB()
 
@@ -82,9 +83,9 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 	}
 
 	defer rows.Close()
-	tmpData := []models.CustomNotificationResult{}
+	tmpData := []models2.PromoResult{}
 	for rows.Next() {
-		var tmpResult models.CustomNotificationResult
+		var tmpResult models2.PromoResult
 		if err := rows.StructScan(&tmpResult); err != nil {
 			fmt.Println(err.Error())
 			return result, serror.New("Failed scan for struct models")
@@ -92,61 +93,71 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 		tmpData = append(tmpData, tmpResult)
 	}
 
-	tmpArr := []models.CustomNotificationResult{}
+	tmpArr := []models2.PromoResult{}
 	for _, v := range tmpData {
-		if v.Category == "onetime" {
+		if v.Frekuensi == "harian" {
 			tmpNow := uttime.Now()
+			tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
+			start, _ := uttime.ParseFromString(tmpStart)
 			tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
 			endDate, _ := uttime.ParseFromString(tmpEnd)
-			if tmpNow.Before(endDate) {
-				v.PengirimanBerikutnya = endDate.Format("2006-01-02")
+			nextDay := start
+			hasNextDay := nextDay.Before(endDate)
+			for tmpNow.After(nextDay) && hasNextDay {
+				duration := 30 * time.Second
+				nextDay = nextDay.AddDate(0, 0, 1).Add(-duration)
+				hasNextDay = nextDay.Before(endDate)
 			}
-		} else if v.Category == "periodic" {
-			if v.Frekuensi == "harian" {
-				tmpNow := uttime.Now()
-				tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
-				start, _ := uttime.ParseFromString(tmpStart)
-				tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
-				endDate, _ := uttime.ParseFromString(tmpEnd)
-				nextDay := start
-				hasNextDay := nextDay.Before(endDate)
-				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 1)
-					hasNextDay = nextDay.Before(endDate)
-				}
-				if hasNextDay {
-					v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
-				}
-			} else if v.Frekuensi == "mingguan" {
-				tmpNow := uttime.Now()
-				tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
-				start, _ := uttime.ParseFromString(tmpStart)
-				tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
-				endDate, _ := uttime.ParseFromString(tmpEnd)
-				nextDay := start
-				hasNextDay := nextDay.Before(endDate)
-				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 7)
-					hasNextDay = nextDay.Before(endDate)
-				}
-				if hasNextDay {
-					v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
-				}
-			} else if v.Frekuensi == "bulanan" {
-				tmpNow := uttime.Now()
-				tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
-				start, _ := uttime.ParseFromString(tmpStart)
-				tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
-				endDate, _ := uttime.ParseFromString(tmpEnd)
-				nextDay := start
-				hasNextDay := nextDay.Before(endDate)
-				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 30)
-					hasNextDay = nextDay.Before(endDate)
-				}
-				if hasNextDay {
-					v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
-				}
+			if hasNextDay {
+				v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
+			}
+		} else if v.Frekuensi == "mingguan" {
+			tmpNow := uttime.Now()
+			tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
+			start, _ := uttime.ParseFromString(tmpStart)
+			tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
+			endDate, _ := uttime.ParseFromString(tmpEnd)
+			nextDay := start
+			hasNextDay := nextDay.Before(endDate)
+			for tmpNow.After(nextDay) && hasNextDay {
+				duration := 30 * time.Second
+				nextDay = nextDay.AddDate(0, 0, 7).Add(-duration)
+				hasNextDay = nextDay.Before(endDate)
+			}
+			if hasNextDay {
+				v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
+			}
+		} else if v.Frekuensi == "bulanan" {
+			tmpNow := uttime.Now()
+			tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
+			start, _ := uttime.ParseFromString(tmpStart)
+			tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
+			endDate, _ := uttime.ParseFromString(tmpEnd)
+			nextDay := start
+			hasNextDay := nextDay.Before(endDate)
+			for tmpNow.After(nextDay) && hasNextDay {
+				duration := 30 * time.Second
+				nextDay = nextDay.AddDate(0, 0, 30).Add(-duration)
+				hasNextDay = nextDay.Before(endDate)
+			}
+			if hasNextDay {
+				v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
+			}
+		} else if v.Frekuensi == "" {
+			tmpNow := uttime.Now()
+			tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
+			start, _ := uttime.ParseFromString(tmpStart)
+			tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
+			endDate, _ := uttime.ParseFromString(tmpEnd)
+			nextDay := start
+			hasNextDay := nextDay.Before(endDate)
+			for tmpNow.After(nextDay) && hasNextDay {
+				duration := 30 * time.Second
+				nextDay = nextDay.AddDate(0, 0, 1).Add(-duration)
+				hasNextDay = nextDay.Before(endDate)
+			}
+			if hasNextDay {
+				v.PengirimanBerikutnya = nextDay.Format("2006-01-02")
 			}
 		}
 		if v.PengirimanBerikutnya == "" {
@@ -158,7 +169,7 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 		tmpArr = append(tmpArr, v)
 	}
 
-	tmpRes := []models.CustomNotificationResult{}
+	tmpRes := []models2.PromoResult{}
 	for _, v := range tmpArr {
 		if v.PengirimanBerikutnya != "-" {
 			tmpRes = append(tmpRes, v)
@@ -170,33 +181,40 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 	return result, nil
 }
 
-func GetCustomNotification(tmpId string) (result models.CustomNotificationResult, serr serror.SError) {
+func GetCustomPromo(tmpId string) (result models2.PromoResult, serr serror.SError) {
 	tmpQuery := `SELECT 
 				id, 
 				link_image, 
 				title, 
 				description, 
-				category, 
-				link_web, 
-				type_notification, 
-				frekuensi,
+				type_promo, 
+				target_promo, 
 				coalesce(start_date :: TIMESTAMP(0) :: STRING, '') AS start_date,
 				coalesce(end_date :: TIMESTAMP(0) :: STRING, '') AS end_date,
+				status_popup,
+				status_notif,
+				frekuensi,
 				coalesce(time_cronjob :: TIME(0) :: STRING, '') AS time_cronjob,
 				coalesce(created_at :: TIMESTAMP(0) :: STRING, '') AS created_at,
 				coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at
-				FROM db_myfuso.custom_notification where id = $1`
+				FROM db_myfuso.custom_promo where status_notif = '1' and id = $1`
 
-	db, _ := ConnectionCockroachDB()
+	db, errx := ConnectionCockroachDB()
+	if errx != nil {
+		fmt.Println(errx.Error())
+		return result, serror.NewFromError(errx)
+	}
+
 	rows, err := db.Queryx(tmpQuery, tmpId)
 	if err != nil {
+		fmt.Println(err.Error())
 		return result, serror.NewFromError(err)
 	}
 
 	defer rows.Close()
-	tmpData := []models.CustomNotificationResult{}
+	tmpData := []models2.PromoResult{}
 	for rows.Next() {
-		var tmpResult models.CustomNotificationResult
+		var tmpResult models2.PromoResult
 		if err := rows.StructScan(&tmpResult); err != nil {
 			fmt.Println(err.Error())
 			return result, serror.New("Failed scan for struct models")
@@ -204,17 +222,9 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 		tmpData = append(tmpData, tmpResult)
 	}
 
-	tmpArr := []models.CustomNotificationResult{}
+	tmpArr := []models2.PromoResult{}
 	for _, v := range tmpData {
-		if v.Category == "onetime" {
-			duration := 30 * time.Second
-			tmpNow := uttime.Now().Add(-duration)
-			tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
-			endDate, _ := uttime.ParseFromString(tmpEnd)
-			if tmpNow.Before(endDate) {
-				v.PengirimanBerikutnya = endDate.Format("2006-01-02")
-			}
-		} else if v.Category == "periodic" {
+		if v.StatusNotif == "1" {
 			if v.Frekuensi == "harian" {
 				duration := 30 * time.Second
 				tmpNow := uttime.Now().Add(-duration)
@@ -265,6 +275,7 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 				}
 			}
 		}
+
 		if v.PengirimanBerikutnya == "" {
 			v.PengirimanBerikutnya = "-"
 			v.Status = "selesai"
@@ -281,7 +292,7 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 	return result, nil
 }
 
-func SendNotification(form models.NotificationRequest) (result string, serr serror.SError) {
+func SendNotification(form models2.NotificationRequest) (result string, serr serror.SError) {
 	conn, err := grpc.Dial(os.Getenv("RPC_NOTIFICATION"), grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("Can't connect to the service : %v", err)
@@ -296,8 +307,8 @@ func SendNotification(form models.NotificationRequest) (result string, serr serr
 		Value: tmpByte,
 	}
 
-	client := packets.NewNotificationClient(conn)
-	output, err := client.SendNotificationUsecase(context.Background(), &packets.SendNotificationRequest{
+	client := packets2.NewNotificationClient(conn)
+	output, err := client.SendNotificationUsecase(context.Background(), &packets2.SendNotificationRequest{
 		Data: &data,
 	})
 

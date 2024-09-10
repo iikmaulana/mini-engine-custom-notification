@@ -1,9 +1,9 @@
-package main
+package custom_notification
 
 import (
 	"context"
-	"github.com/iikmaulana/mini-engine/lib"
-	"github.com/iikmaulana/mini-engine/models"
+	models2 "github.com/iikmaulana/mini-engine/custom_notification/models"
+	"github.com/iikmaulana/mini-engine/custom_promo/lib"
 	"github.com/robfig/cron/v3"
 	"os"
 	"os/signal"
@@ -14,7 +14,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
 	"fmt"
-	"github.com/iikmaulana/mini-engine/engine"
+	"github.com/iikmaulana/mini-engine/custom_notification/engine"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/uzzeet/uzzeet-gateway/libs/utils/uttime"
@@ -87,7 +87,7 @@ func runCront(tmpId string) {
 	}
 
 	tmpSkipDB := false
-	tmpFormNotif := models.NotificationRequest{
+	tmpFormNotif := models2.NotificationRequest{
 		Title:            tmpTitle,
 		Text:             tmpText,
 		Type:             tmpType,
