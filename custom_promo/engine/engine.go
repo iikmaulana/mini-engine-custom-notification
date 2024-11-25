@@ -230,6 +230,9 @@ func GetCustomPromo(tmpId string) (result models2.PromoResult, serr serror.SErro
 				tmpNow := uttime.Now().Add(-duration)
 				tmpStart := fmt.Sprintf("%s %s", strings.Split(v.StartDate, " ")[0], v.TimeCronjob)
 				start, _ := uttime.ParseFromString(tmpStart)
+				if v.StartDate == v.EndDate {
+					start = tmpNow
+				}
 				tmpEnd := fmt.Sprintf("%s %s", strings.Split(v.EndDate, " ")[0], v.TimeCronjob)
 				endDate, _ := uttime.ParseFromString(tmpEnd)
 				nextDay := start
