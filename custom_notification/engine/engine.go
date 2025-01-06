@@ -111,7 +111,8 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 				nextDay := start
 				hasNextDay := nextDay.Before(endDate)
 				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 1)
+					duration := 30 * time.Second
+					nextDay = nextDay.AddDate(0, 0, 1).Add(-duration)
 					hasNextDay = nextDay.Before(endDate)
 				}
 				if hasNextDay {
@@ -126,7 +127,8 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 				nextDay := start
 				hasNextDay := nextDay.Before(endDate)
 				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 7)
+					duration := 30 * time.Second
+					nextDay = nextDay.AddDate(0, 0, 7).Add(-duration)
 					hasNextDay = nextDay.Before(endDate)
 				}
 				if hasNextDay {
@@ -141,7 +143,8 @@ func GetListCustomNotification() (result []models.CustomNotificationResult, serr
 				nextDay := start
 				hasNextDay := nextDay.Before(endDate)
 				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 30)
+					duration := 30 * time.Second
+					nextDay = nextDay.AddDate(0, 0, 30).Add(-duration)
 					hasNextDay = nextDay.Before(endDate)
 				}
 				if hasNextDay {
@@ -225,7 +228,8 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 				nextDay := start
 				hasNextDay := nextDay.Before(endDate)
 				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 1)
+					duration := 30 * time.Second
+					nextDay = nextDay.AddDate(0, 0, 1).Add(-duration)
 					hasNextDay = nextDay.Before(endDate)
 				}
 				if hasNextDay {
@@ -241,7 +245,8 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 				nextDay := start
 				hasNextDay := nextDay.Before(endDate)
 				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 7)
+					duration := 30 * time.Second
+					nextDay = nextDay.AddDate(0, 0, 7).Add(-duration)
 					hasNextDay = nextDay.Before(endDate)
 				}
 				if hasNextDay {
@@ -257,7 +262,8 @@ func GetCustomNotification(tmpId string) (result models.CustomNotificationResult
 				nextDay := start
 				hasNextDay := nextDay.Before(endDate)
 				for tmpNow.After(nextDay) && hasNextDay {
-					nextDay = nextDay.AddDate(0, 0, 30)
+					duration := 30 * time.Second
+					nextDay = nextDay.AddDate(0, 0, 30).Add(-duration)
 					hasNextDay = nextDay.Before(endDate)
 				}
 				if hasNextDay {
