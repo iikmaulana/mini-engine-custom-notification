@@ -95,7 +95,7 @@ func runCront(tmpID string) {
 		var wg sync.WaitGroup
 		for _, v := range tmpUserDealer {
 			wg.Add(1)
-			go func(typeNotification, titleNotification, tmpCustomPromoId, textNotification, timeNext, timeCront, status string, tmpUser models.UserResult, wg *sync.WaitGroup) {
+			go func(typeNotification, titleNotification, textNotification, tmpCustomPromoId, timeNext, timeCront, status string, tmpUser models.UserResult, wg *sync.WaitGroup) {
 				tmpFormPromo := models.NotificationRequest{
 					Title:            titleNotification,
 					Text:             textNotification,
