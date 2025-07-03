@@ -16,6 +16,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -89,28 +90,66 @@ func runCront(tmpID string) {
 	}
 
 	tmpSkipDB := false
-	tmpFormPromo := models.NotificationRequest{
-		Title:            tmpTitle,
-		Text:             tmpText,
-		Type:             tmpType,
-		SendTo:           "web",
-		NotificationType: "broadcast",
-		CreatedAt:        fmt.Sprintf("%s %s", tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob),
-		SkipDB:           &tmpSkipDB,
-	}
-
-	if tmpFormPromo.CreatedAt != "" {
-		_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
-		if errx != nil {
-			fmt.Println(errx.Error())
-		} else {
-			_, err := engine.SendNotification(tmpFormPromo)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-			fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
-			if tmpCustomPromo.Status == "berlangsung" {
-				_, _ = SendingFCMContent(tmpType, tmpTitle, tmpCustomPromo.ID, tmpFormPromo.Title, tmpText)
+	if tmpCustomPromo.DealerId != nil {
+		tmpUserDealer, _ := engine.GetUserDealer(*tmpCustomPromo.DealerId)
+		var wg sync.WaitGroup
+		for _, v := range tmpUserDealer {
+			wg.Add(1)
+			go func(typeNotification, titleNotification, tmpCustomPromoId, textNotification, timeNext, timeCront, status string, tmpUser models.UserResult, wg *sync.WaitGroup) {
+				tmpFormPromo := models.NotificationRequest{
+					Title:            titleNotification,
+					Text:             textNotification,
+					Type:             typeNotification,
+					SendTo:           "web",
+					CreatedAt:        fmt.Sprintf("%s %s", timeNext, timeCront),
+					SkipDB:           &tmpSkipDB,
+					OrganizationID:   tmpUser.OrganizationId,
+					UserID:           tmpUser.UserId,
+					ReadStatus:       0,
+					NotificationType: "individual",
+				}
+				if tmpFormPromo.CreatedAt != "" {
+					_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
+					if errx != nil {
+						fmt.Println(errx.Error())
+					} else {
+						_, err := engine.SendNotification(tmpFormPromo)
+						if err != nil {
+							fmt.Println(err.Error())
+						}
+						fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
+						if status == "berlangsung" {
+							_, _ = SendingFCMContent(typeNotification, titleNotification, tmpCustomPromoId, tmpFormPromo.Title, textNotification)
+						}
+					}
+				}
+				defer wg.Done()
+			}(tmpType, tmpTitle, tmpText, tmpCustomPromo.ID, tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob, tmpCustomPromo.Status, v, &wg)
+		}
+		wg.Wait()
+	} else {
+		tmpFormPromo := models.NotificationRequest{
+			Title:            tmpTitle,
+			Text:             tmpText,
+			Type:             tmpType,
+			SendTo:           "web",
+			NotificationType: "broadcast",
+			CreatedAt:        fmt.Sprintf("%s %s", tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob),
+			SkipDB:           &tmpSkipDB,
+		}
+		if tmpFormPromo.CreatedAt != "" {
+			_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
+			if errx != nil {
+				fmt.Println(errx.Error())
+			} else {
+				_, err := engine.SendNotification(tmpFormPromo)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+				fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
+				if tmpCustomPromo.Status == "berlangsung" {
+					_, _ = SendingFCMContent(tmpType, tmpTitle, tmpCustomPromo.ID, tmpFormPromo.Title, tmpText)
+				}
 			}
 		}
 	}
