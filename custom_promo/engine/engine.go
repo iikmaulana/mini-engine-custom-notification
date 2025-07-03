@@ -356,9 +356,9 @@ func GetTokenFirebase() (result []string, serr serror.SError) {
 }
 
 func GetUserDealer(dealerId string) (result []models2.UserResult, serr serror.SError) {
-	tmpQuery := `select o.id as organization_id, u.id as user_id from um_runner.organization o
+	tmpQuery := `select coalesce(o.id :: STRING, '') as organization_id, coalesce(u.id :: STRING, '') as user_id from um_runner.organization o
 				left join um_runner.user u on o.id = u.organization_id
-				where o.deleted_at is null and u.deleted_at is null and o.parent_id = $1`
+				where o.deleted_at is null and u.deleted_at is null and u.id is not null and o.parent_id = $1`
 
 	db, _ := ConnectionCockroachDB()
 	rows, err := db.Queryx(tmpQuery, dealerId)
@@ -369,10 +369,12 @@ func GetUserDealer(dealerId string) (result []models2.UserResult, serr serror.SE
 	defer rows.Close()
 
 	for rows.Next() {
-		if err := rows.StructScan(&result); err != nil {
+		var tmpResult models2.UserResult
+		if err := rows.StructScan(&tmpResult); err != nil {
 			fmt.Println(err.Error())
 			return result, serror.New("Failed scan for struct models")
 		}
+		result = append(result, tmpResult)
 	}
 
 	return result, nil
