@@ -379,3 +379,33 @@ func GetUserDealer(dealerId string) (result []models2.UserResult, serr serror.SE
 
 	return result, nil
 }
+
+func GetTokenDealerFirebase(dealerId string) (result []string, serr serror.SError) {
+	tmpQuery := `select ft.token from um_runner.organization o
+					left join um_runner.user u on o.id = u.organization_id
+					left join db_myfuso.firebase_token ft on u.id::string = ft.user_id
+					where o.deleted_at is null 
+					and u.deleted_at is null 
+					and u.id is not null
+					and ft.token is not null
+					and o.parent_id = $1`
+
+	db, _ := ConnectionCockroachDB()
+	rows, err := db.Queryx(tmpQuery, dealerId)
+	if err != nil {
+		return result, serror.NewFromError(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var tmpResult string
+		if err := rows.Scan(&tmpResult); err != nil {
+			fmt.Println(err.Error())
+			return result, serror.New("Failed scan for struct models")
+		}
+		result = append(result, tmpResult)
+	}
+
+	return result, nil
+}

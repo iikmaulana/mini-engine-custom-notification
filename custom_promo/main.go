@@ -118,15 +118,15 @@ func runCront(tmpID string) {
 							fmt.Println(err.Error())
 						}
 						fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
-						if status == "berlangsung" {
-							_, _ = SendingFCMContent(typeNotification, titleNotification, tmpCustomPromoId, tmpFormPromo.Title, textNotification)
-						}
 					}
 				}
 				defer wg.Done()
 			}(tmpType, tmpTitle, tmpText, tmpCustomPromo.ID, tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob, tmpCustomPromo.Status, v, &wg)
 		}
 		wg.Wait()
+		if tmpCustomPromo.Status == "berlangsung" {
+			_, _ = SendingFCMDealerContent(tmpType, tmpTitle, tmpCustomPromo.ID, tmpCustomPromo.Title, tmpText, *tmpCustomPromo.DealerId)
+		}
 	} else {
 		tmpFormPromo := models.NotificationRequest{
 			Title:            tmpTitle,
@@ -184,6 +184,64 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifID, tmpTitleCustom, tmp
 
 		message := &messaging.Message{
 			Topic: tmpTopic,
+			Data: map[string]string{
+				"environment":     os.Getenv("FCM_ENVIRONMENT"),
+				"id_custom_notif": tmpCustomeNotifID,
+				"title":           tmpTitle,
+				"type_name":       tmpType,
+				"text":            tmpText,
+			},
+			Webpush: &messaging.WebpushConfig{
+				Notification: &messaging.WebpushNotification{
+					Title: tmpTitle,
+					Body:  tmpTitleCustom,
+					Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
+				},
+				FCMOptions: &messaging.WebpushFCMOptions{
+					Link: tmpLink,
+				},
+			},
+		}
+
+		response, err := client.Send(ctx, message)
+		if err != nil {
+			log.Fatalf("error sending message: %v", err)
+		}
+
+		fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
+
+	}
+	return "", nil
+}
+
+func SendingFCMDealerContent(tmpType, tmpTitle, tmpCustomeNotifID, tmpTitleCustom, tmpText, dealerId string) (result string, err error) {
+
+	fmt.Println("send notif")
+	ctx := context.Background()
+	opt := option.WithCredentialsFile("my-fuso-81375-firebase-adminsdk-aihny-c26072971b.json")
+
+	app, err := firebase.NewApp(ctx, nil, opt)
+	if err != nil {
+		log.Fatalf("error initializing app: %v", err)
+	}
+
+	client, err := app.Messaging(ctx)
+	if err != nil {
+		log.Fatalf("error getting Messaging client: %v", err)
+	}
+
+	tmpTopic := os.Getenv("FCM_TOPIC")
+	tmpToken, _ := engine.GetTokenDealerFirebase(dealerId)
+	for _, v := range tmpToken {
+		_, errx := client.SubscribeToTopic(ctx, tmpToken, tmpTopic)
+		if errx != nil {
+			log.Fatalf("error getting Messaging client: %v", err)
+		}
+
+		tmpLink := fmt.Sprintf("%s/promo/%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifID)
+
+		message := &messaging.Message{
+			Token: v,
 			Data: map[string]string{
 				"environment":     os.Getenv("FCM_ENVIRONMENT"),
 				"id_custom_notif": tmpCustomeNotifID,
