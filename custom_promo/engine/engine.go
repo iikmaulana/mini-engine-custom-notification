@@ -72,7 +72,8 @@ func GetListCustomPromo() (result []models2.PromoResult, serr serror.SError) {
 					frekuensi,
 					coalesce(time_cronjob :: TIME(0) :: STRING, '') AS time_cronjob,
 					coalesce(created_at :: TIMESTAMP(0) :: STRING, '') AS created_at,
-					coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at
+					coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at,
+					dealer_id
 					FROM db_myfuso.custom_promo where status_notif = '1'`
 
 	db, _ := ConnectionCockroachDB()
@@ -199,7 +200,8 @@ func GetCustomPromo(tmpId string) (result models2.PromoResult, serr serror.SErro
 				frekuensi,
 				coalesce(time_cronjob :: TIME(0) :: STRING, '') AS time_cronjob,
 				coalesce(created_at :: TIMESTAMP(0) :: STRING, '') AS created_at,
-				coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at
+				coalesce(updated_at :: TIMESTAMP(0) :: STRING, '') AS updated_at,
+				dealer_id
 				FROM db_myfuso.custom_promo where status_notif = '1' and id = $1`
 
 	db, errx := ConnectionCockroachDB()
@@ -348,6 +350,29 @@ func GetTokenFirebase() (result []string, serr serror.SError) {
 			return result, serror.New("Failed scan for struct models")
 		}
 		result = append(result, tmpResult)
+	}
+
+	return result, nil
+}
+
+func GetUserDealer(dealerId string) (result []models2.UserResult, serr serror.SError) {
+	tmpQuery := `select o.id as organization_id, u.id as user_id from um_runner.organization o
+				left join um_runner.user u on o.id = u.organization_id
+				where o.deleted_at is null and u.deleted_at is null and o.parent_id = $1`
+
+	db, _ := ConnectionCockroachDB()
+	rows, err := db.Queryx(tmpQuery, dealerId)
+	if err != nil {
+		return result, serror.NewFromError(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := rows.StructScan(&result); err != nil {
+			fmt.Println(err.Error())
+			return result, serror.New("Failed scan for struct models")
+		}
 	}
 
 	return result, nil
