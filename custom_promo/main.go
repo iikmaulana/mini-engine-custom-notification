@@ -27,6 +27,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	fmt.Println("rpc notification : " + os.Getenv("RPC_NOTIFICATION"))
+
 	tmpCront()
 	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
 	scheduler := cron.New(cron.WithLocation(jakartaTime))
