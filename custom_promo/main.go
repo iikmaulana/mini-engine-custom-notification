@@ -17,6 +17,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -287,33 +288,49 @@ func SendingFCMDealerContent(tmpType, tmpTitle, tmpCustomeNotifID, tmpTitleCusto
 	tmpToken, _ := engine.GetTokenDealerFirebase(dealerId)
 	tmpLink := fmt.Sprintf("%s/promo/%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifID)
 
-	message := &messaging.MulticastMessage{
-		Tokens: tmpToken,
-		Data: map[string]string{
-			"environment":     os.Getenv("FCM_ENVIRONMENT"),
-			"id_custom_notif": tmpCustomeNotifID,
-			"title":           tmpTitle,
-			"type_name":       tmpType,
-			"text":            tmpText,
-		},
-		Webpush: &messaging.WebpushConfig{
-			Notification: &messaging.WebpushNotification{
-				Title: tmpTitle,
-				Body:  tmpTitleCustom,
-				Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
-			},
-			FCMOptions: &messaging.WebpushFCMOptions{
-				Link: tmpLink,
-			},
-		},
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 10)
+
+	for i, token := range tmpToken {
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func(i int, token string) {
+			defer func() {
+				<-sem
+				wg.Done()
+			}()
+
+			message := &messaging.Message{
+				Token: token,
+				Data: map[string]string{
+					"environment":     os.Getenv("FCM_ENVIRONMENT"),
+					"id_custom_notif": tmpCustomeNotifID,
+					"title":           tmpTitle,
+					"type_name":       tmpType,
+					"text":            tmpText,
+				},
+				Webpush: &messaging.WebpushConfig{
+					Notification: &messaging.WebpushNotification{
+						Title: tmpTitle,
+						Body:  tmpTitleCustom,
+						Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
+					},
+					FCMOptions: &messaging.WebpushFCMOptions{
+						Link: tmpLink,
+					},
+				},
+			}
+
+			response, err := client.Send(ctx, message)
+			if err != nil {
+				log.Fatalf("error sending message: %v", err)
+			}
+			fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
+		}(i, token)
 	}
 
-	response, err := client.SendMulticast(ctx, message)
-	if err != nil {
-		log.Fatalf("error sending message: %v", err)
-	}
-
-	fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
-
+	wg.Wait()
+	fmt.Println("Done!!!")
 	return "", nil
 }
