@@ -409,3 +409,26 @@ func GetTokenDealerFirebase(dealerId string) (result []string, serr serror.SErro
 
 	return result, nil
 }
+
+func GetUserCommunity() (result []models2.UserResult, serr serror.SError) {
+	tmpQuery := `select '00000000-0000-0000-0000-000000000000' as organization_id, id as user_id from db_myfuso.user_community`
+
+	db, _ := ConnectionCockroachDB()
+	rows, err := db.Queryx(tmpQuery)
+	if err != nil {
+		return result, serror.NewFromError(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var tmpResult models2.UserResult
+		if err := rows.StructScan(&tmpResult); err != nil {
+			fmt.Println(err.Error())
+			return result, serror.New("Failed scan for struct models")
+		}
+		result = append(result, tmpResult)
+	}
+
+	return result, nil
+}

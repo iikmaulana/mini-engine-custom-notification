@@ -16,7 +16,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -94,38 +93,32 @@ func runCront(tmpID string) {
 	tmpSkipDB := false
 	if tmpCustomPromo.DealerId != nil {
 		tmpUserDealer, _ := engine.GetUserDealer(*tmpCustomPromo.DealerId)
-		var wg sync.WaitGroup
 		for _, v := range tmpUserDealer {
-			wg.Add(1)
-			go func(typeNotification, titleNotification, textNotification, tmpCustomPromoId, timeNext, timeCront, status string, tmpUser models.UserResult, wg *sync.WaitGroup) {
-				tmpFormPromo := models.NotificationRequest{
-					Title:            titleNotification,
-					Text:             textNotification,
-					Type:             typeNotification,
-					SendTo:           "web",
-					CreatedAt:        fmt.Sprintf("%s %s", timeNext, timeCront),
-					SkipDB:           &tmpSkipDB,
-					OrganizationID:   tmpUser.OrganizationId,
-					UserID:           tmpUser.UserId,
-					ReadStatus:       0,
-					NotificationType: "individual",
-				}
-				if tmpFormPromo.CreatedAt != "" {
-					_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
-					if errx != nil {
-						fmt.Println(errx.Error())
-					} else {
-						_, err := engine.SendNotification(tmpFormPromo)
-						if err != nil {
-							fmt.Println(err.Error())
-						}
-						fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
+			tmpFormPromo := models.NotificationRequest{
+				Title:            tmpTitle,
+				Text:             tmpText,
+				Type:             tmpType,
+				SendTo:           "web",
+				CreatedAt:        fmt.Sprintf("%s %s", tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob),
+				SkipDB:           &tmpSkipDB,
+				OrganizationID:   v.OrganizationId,
+				UserID:           v.UserId,
+				ReadStatus:       0,
+				NotificationType: "individual",
+			}
+			if tmpFormPromo.CreatedAt != "" {
+				_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
+				if errx != nil {
+					fmt.Println(errx.Error())
+				} else {
+					_, err := engine.SendNotification(tmpFormPromo)
+					if err != nil {
+						fmt.Println(err.Error())
 					}
+					fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
 				}
-				defer wg.Done()
-			}(tmpType, tmpTitle, tmpText, tmpCustomPromo.ID, tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob, tmpCustomPromo.Status, v, &wg)
+			}
 		}
-		wg.Wait()
 		if tmpCustomPromo.Status == "berlangsung" {
 			_, _ = SendingFCMDealerContent(tmpType, tmpTitle, tmpCustomPromo.ID, tmpCustomPromo.Title, tmpText, *tmpCustomPromo.DealerId)
 		}
@@ -147,6 +140,33 @@ func runCront(tmpID string) {
 				_, err := engine.SendNotification(tmpFormPromo)
 				if err != nil {
 					fmt.Println(err.Error())
+				}
+				tmpUserCommunity, _ := engine.GetUserCommunity()
+				for _, v := range tmpUserCommunity {
+					tmpFormPromo := models.NotificationRequest{
+						Title:            tmpTitle,
+						Text:             tmpText,
+						Type:             tmpType,
+						SendTo:           "web",
+						CreatedAt:        fmt.Sprintf("%s %s", tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob),
+						SkipDB:           &tmpSkipDB,
+						OrganizationID:   v.OrganizationId,
+						UserID:           v.UserId,
+						ReadStatus:       0,
+						NotificationType: "individual",
+					}
+					if tmpFormPromo.CreatedAt != "" {
+						_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
+						if errx != nil {
+							fmt.Println(errx.Error())
+						} else {
+							_, err := engine.SendNotification(tmpFormPromo)
+							if err != nil {
+								fmt.Println(err.Error())
+							}
+							fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
+						}
+					}
 				}
 				fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
 				if tmpCustomPromo.Status == "berlangsung" {
