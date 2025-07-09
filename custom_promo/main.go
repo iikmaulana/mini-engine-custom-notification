@@ -93,32 +93,45 @@ func runCront(tmpID string) {
 	tmpSkipDB := false
 	if tmpCustomPromo.DealerId != nil {
 		tmpUserDealer, _ := engine.GetUserDealer(*tmpCustomPromo.DealerId)
-		for _, v := range tmpUserDealer {
-			tmpFormPromo := models.NotificationRequest{
-				Title:            tmpTitle,
-				Text:             tmpText,
-				Type:             tmpType,
-				SendTo:           "web",
-				CreatedAt:        fmt.Sprintf("%s %s", tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob),
-				SkipDB:           &tmpSkipDB,
-				OrganizationID:   v.OrganizationId,
-				UserID:           v.UserId,
-				ReadStatus:       0,
-				NotificationType: "individual",
+		limit := 100
+		for i := 0; i < len(tmpUserDealer); i += limit {
+			end := i + limit
+			if end > len(tmpUserDealer) {
+				end = len(tmpUserDealer)
 			}
-			if tmpFormPromo.CreatedAt != "" {
-				_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
-				if errx != nil {
-					fmt.Println(errx.Error())
-				} else {
-					_, err := engine.SendNotification(tmpFormPromo)
-					if err != nil {
-						fmt.Println(err.Error())
+			batch := tmpUserDealer[i:end]
+			for _, v := range batch {
+				tmpFormPromo := models.NotificationRequest{
+					Title:            tmpTitle,
+					Text:             tmpText,
+					Type:             tmpType,
+					SendTo:           "web",
+					CreatedAt:        fmt.Sprintf("%s %s", tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob),
+					SkipDB:           &tmpSkipDB,
+					OrganizationID:   v.OrganizationId,
+					UserID:           v.UserId,
+					ReadStatus:       0,
+					NotificationType: "individual",
+				}
+				if tmpFormPromo.CreatedAt != "" {
+					_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
+					if errx != nil {
+						fmt.Println(errx.Error())
+					} else {
+						_, err := engine.SendNotification(tmpFormPromo)
+						if err != nil {
+							fmt.Println(err.Error())
+						}
+						fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
 					}
-					fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
 				}
 			}
+
+			if end < len(tmpUserDealer) {
+				time.Sleep(5 * time.Second)
+			}
 		}
+		fmt.Println("===========================================================")
 		if tmpCustomPromo.Status == "berlangsung" {
 			_, _ = SendingFCMDealerContent(tmpType, tmpTitle, tmpCustomPromo.ID, tmpCustomPromo.Title, tmpText, *tmpCustomPromo.DealerId)
 		}
@@ -142,32 +155,45 @@ func runCront(tmpID string) {
 					fmt.Println(err.Error())
 				}
 				tmpUserCommunity, _ := engine.GetUserCommunity()
-				for _, v := range tmpUserCommunity {
-					tmpFormPromo := models.NotificationRequest{
-						Title:            tmpTitle,
-						Text:             tmpText,
-						Type:             tmpType,
-						SendTo:           "web",
-						CreatedAt:        fmt.Sprintf("%s %s", tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob),
-						SkipDB:           &tmpSkipDB,
-						OrganizationID:   v.OrganizationId,
-						UserID:           v.UserId,
-						ReadStatus:       0,
-						NotificationType: "individual",
+				limit := 100
+				for i := 0; i < len(tmpUserCommunity); i += limit {
+					end := i + limit
+					if end > len(tmpUserCommunity) {
+						end = len(tmpUserCommunity)
 					}
-					if tmpFormPromo.CreatedAt != "" {
-						_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
-						if errx != nil {
-							fmt.Println(errx.Error())
-						} else {
-							_, err := engine.SendNotification(tmpFormPromo)
-							if err != nil {
-								fmt.Println(err.Error())
+					batch := tmpUserCommunity[i:end]
+					for _, v := range batch {
+						tmpFormPromo := models.NotificationRequest{
+							Title:            tmpTitle,
+							Text:             tmpText,
+							Type:             tmpType,
+							SendTo:           "web",
+							CreatedAt:        fmt.Sprintf("%s %s", tmpCustomPromo.PengirimanBerikutnya, tmpCustomPromo.TimeCronjob),
+							SkipDB:           &tmpSkipDB,
+							OrganizationID:   v.OrganizationId,
+							UserID:           v.UserId,
+							ReadStatus:       0,
+							NotificationType: "individual",
+						}
+						if tmpFormPromo.CreatedAt != "" {
+							_, errx := uttime.ParseWithFormat("2006-01-02 15:04:05", tmpFormPromo.CreatedAt)
+							if errx != nil {
+								fmt.Println(errx.Error())
+							} else {
+								_, err := engine.SendNotification(tmpFormPromo)
+								if err != nil {
+									fmt.Println(err.Error())
+								}
+								fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
 							}
-							fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
 						}
 					}
+
+					if end < len(tmpUserCommunity) {
+						time.Sleep(5 * time.Second)
+					}
 				}
+				fmt.Println("===========================================================")
 				fmt.Println(fmt.Sprintf("Send notif at : %s", tmpFormPromo.CreatedAt))
 				if tmpCustomPromo.Status == "berlangsung" {
 					_, _ = SendingFCMContent(tmpType, tmpTitle, tmpCustomPromo.ID, tmpFormPromo.Title, tmpText)
@@ -252,44 +278,36 @@ func SendingFCMDealerContent(tmpType, tmpTitle, tmpCustomeNotifID, tmpTitleCusto
 		log.Fatalf("error getting Messaging client: %v", err)
 	}
 
-	tmpTopic := os.Getenv("FCM_TOPIC")
 	tmpToken, _ := engine.GetTokenDealerFirebase(dealerId)
-	for _, v := range tmpToken {
-		_, errx := client.SubscribeToTopic(ctx, tmpToken, tmpTopic)
-		if errx != nil {
-			log.Fatalf("error getting Messaging client: %v", err)
-		}
+	tmpLink := fmt.Sprintf("%s/promo/%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifID)
 
-		tmpLink := fmt.Sprintf("%s/promo/%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifID)
-
-		message := &messaging.Message{
-			Token: v,
-			Data: map[string]string{
-				"environment":     os.Getenv("FCM_ENVIRONMENT"),
-				"id_custom_notif": tmpCustomeNotifID,
-				"title":           tmpTitle,
-				"type_name":       tmpType,
-				"text":            tmpText,
+	message := &messaging.MulticastMessage{
+		Tokens: tmpToken,
+		Data: map[string]string{
+			"environment":     os.Getenv("FCM_ENVIRONMENT"),
+			"id_custom_notif": tmpCustomeNotifID,
+			"title":           tmpTitle,
+			"type_name":       tmpType,
+			"text":            tmpText,
+		},
+		Webpush: &messaging.WebpushConfig{
+			Notification: &messaging.WebpushNotification{
+				Title: tmpTitle,
+				Body:  tmpTitleCustom,
+				Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
 			},
-			Webpush: &messaging.WebpushConfig{
-				Notification: &messaging.WebpushNotification{
-					Title: tmpTitle,
-					Body:  tmpTitleCustom,
-					Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
-				},
-				FCMOptions: &messaging.WebpushFCMOptions{
-					Link: tmpLink,
-				},
+			FCMOptions: &messaging.WebpushFCMOptions{
+				Link: tmpLink,
 			},
-		}
-
-		response, err := client.Send(ctx, message)
-		if err != nil {
-			log.Fatalf("error sending message: %v", err)
-		}
-
-		fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
-
+		},
 	}
+
+	response, err := client.SendMulticast(ctx, message)
+	if err != nil {
+		log.Fatalf("error sending message: %v", err)
+	}
+
+	fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
+
 	return "", nil
 }
