@@ -15,8 +15,6 @@ import (
 	"github.com/uzzeet/uzzeet-gateway/libs/helper/serror"
 	"github.com/uzzeet/uzzeet-gateway/libs/utils/uttime"
 	"google.golang.org/grpc"
-	"log"
-	"os"
 	"strings"
 	"time"
 )
@@ -300,12 +298,7 @@ func GetCustomPromo(tmpId string) (result models2.PromoResult, serr serror.SErro
 	return result, nil
 }
 
-func SendNotification(form models2.NotificationRequest) (result string, serr serror.SError) {
-	conn, err := grpc.Dial(os.Getenv("RPC_NOTIFICATION"), grpc.WithInsecure())
-	if err != nil {
-		log.Fatalf("Can't connect to the service : %v", err)
-	}
-
+func SendNotification(conn *grpc.ClientConn, form models2.NotificationRequest) (result string, serr serror.SError) {
 	tmpByte, err := json.Marshal(form)
 	if err != nil {
 		return result, serror.NewFromError(err)

@@ -13,6 +13,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/uzzeet/uzzeet-gateway/libs/utils/uttime"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 	"log"
 	"os"
 	"os/signal"
@@ -67,6 +68,11 @@ func tmpCront() {
 
 func runCront(tmpID string) {
 	tmpCustomPromo, _ := engine.GetCustomPromo(tmpID)
+	conn, err := grpc.Dial(os.Getenv("RPC_NOTIFICATION"), grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("Can't connect to the service: %v", err)
+	}
+	defer conn.Close()
 
 	tmpType := ""
 	tmpTitle := ""
@@ -118,7 +124,7 @@ func runCront(tmpID string) {
 					if errx != nil {
 						fmt.Println(errx.Error())
 					} else {
-						_, err := engine.SendNotification(tmpFormPromo)
+						_, err := engine.SendNotification(conn, tmpFormPromo)
 						if err != nil {
 							fmt.Println(err.Error())
 						}
@@ -150,7 +156,7 @@ func runCront(tmpID string) {
 			if errx != nil {
 				fmt.Println(errx.Error())
 			} else {
-				_, err := engine.SendNotification(tmpFormPromo)
+				_, err := engine.SendNotification(conn, tmpFormPromo)
 				if err != nil {
 					fmt.Println(err.Error())
 				}
@@ -180,7 +186,7 @@ func runCront(tmpID string) {
 							if errx != nil {
 								fmt.Println(errx.Error())
 							} else {
-								_, err := engine.SendNotification(tmpFormPromo)
+								_, err := engine.SendNotification(conn, tmpFormPromo)
 								if err != nil {
 									fmt.Println(err.Error())
 								}
