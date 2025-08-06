@@ -120,12 +120,14 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifId, tmpTitleCustom, tmp
 
 	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
-		log.Fatalf("error initializing app: %v", err)
+		fmt.Println("error initializing app: ", err.Error())
+		return result, err
 	}
 
 	client, err := app.Messaging(ctx)
 	if err != nil {
-		log.Fatalf("error getting Messaging client: %v", err)
+		fmt.Println("x1 error getting Messaging client: ", err.Error())
+		return result, err
 	}
 
 	tmpTopic := os.Getenv("FCM_TOPIC")
@@ -133,7 +135,8 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifId, tmpTitleCustom, tmp
 	if len(tmpToken) > 0 {
 		_, errx := client.SubscribeToTopic(ctx, tmpToken, tmpTopic)
 		if errx != nil {
-			log.Fatalf("error getting Messaging client: %v", err)
+			fmt.Println("x2 error getting Messaging client: ", errx.Error())
+			return result, err
 		}
 
 		tmpLink := fmt.Sprintf("%s/?globalNotifId=%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifId)
@@ -161,7 +164,7 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifId, tmpTitleCustom, tmp
 
 		response, err := client.Send(ctx, message)
 		if err != nil {
-			log.Fatalf("error sending message: %v", err)
+			fmt.Println("error sending message: ", err.Error())
 		}
 
 		fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
