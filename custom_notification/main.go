@@ -133,10 +133,17 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifId, tmpTitleCustom, tmp
 	tmpTopic := os.Getenv("FCM_TOPIC")
 	tmpToken, _ := engine.GetTokenFirebase()
 	if len(tmpToken) > 0 {
-		_, errx := client.SubscribeToTopic(ctx, tmpToken, tmpTopic)
-		if errx != nil {
-			fmt.Println("x2 error getting Messaging client: ", errx.Error())
-			return result, err
+		const maxBatchSize = 1000
+		for i := 0; i < len(tmpToken); i += maxBatchSize {
+			end := i + maxBatchSize
+			if end > len(tmpToken) {
+				end = len(tmpToken)
+			}
+			batch := tmpToken[i:end]
+			if _, errx := client.SubscribeToTopic(ctx, batch, tmpTopic); errx != nil {
+				fmt.Println("error subscribing batch to topic: ", errx.Error())
+				return result, err
+			}
 		}
 
 		tmpLink := fmt.Sprintf("%s/?globalNotifId=%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifId)
