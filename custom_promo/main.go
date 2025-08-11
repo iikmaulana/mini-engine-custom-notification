@@ -5,6 +5,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
 	"fmt"
+	"github.com/go-co-op/gocron"
 	"github.com/iikmaulana/mini-engine/custom_promo/engine"
 	"github.com/iikmaulana/mini-engine/custom_promo/lib"
 	"github.com/iikmaulana/mini-engine/custom_promo/models"
@@ -16,9 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -32,19 +31,12 @@ func main() {
 
 	tmpCront()
 	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
-	scheduler := cron.New(cron.WithLocation(jakartaTime))
-	if _, err := scheduler.AddFunc("59 23 * * *", tmpCront); err != nil {
-		log.Fatal(err)
-	}
 
-	scheduler.Start()
-	defer scheduler.Stop()
-
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	log.Println("Scheduler started, waiting for signal...")
-	<-sig
-	log.Println("Signal received, stopping scheduler...")
+	s := gocron.NewScheduler(jakartaTime)
+	_, _ = s.Cron("59 23 * * *").Do(func() {
+		tmpCront()
+	})
+	s.StartBlocking()
 }
 
 func tmpCront() {
