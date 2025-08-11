@@ -31,12 +31,18 @@ func main() {
 	tmpCront()
 	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
 	scheduler := cron.New(cron.WithLocation(jakartaTime))
+	if _, err := scheduler.AddFunc("59 23 * * *", tmpCront); err != nil {
+		log.Fatal(err)
+	}
+
+	scheduler.Start()
 	defer scheduler.Stop()
-	scheduler.AddFunc("59 23 * * *", tmpCront)
-	go scheduler.Start()
+
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	log.Println("Scheduler started, waiting for signal...")
 	<-sig
+	log.Println("Signal received, stopping scheduler...")
 }
 
 func tmpCront() {
