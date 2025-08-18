@@ -29,13 +29,13 @@ func main() {
 
 	fmt.Println("rpc notification : " + os.Getenv("RPC_NOTIFICATION"))
 
-	tmpCront()
+	fmt.Println("ENGINE RUNNING")
 	runCronJobs()
 }
 
 func runCronJobs() {
 	s := gocron.NewScheduler(time.Local)
-	_, _ = s.Cron("0 1 * * *").Do(func() {
+	_, _ = s.Cron("59 23 * * *").Do(func() {
 		fmt.Println(fmt.Sprintf("Date : %s =========================> ", uttime.Now().Format("2006-01-02")))
 		tmpCront()
 	})
@@ -43,7 +43,6 @@ func runCronJobs() {
 }
 
 func tmpCront() {
-	fmt.Println(fmt.Sprintf("Date : %s", uttime.Now().Format("2006-01-02")))
 
 	tmpTime := map[string]string{}
 	tmpData, _ := engine.GetListCustomPromo()
@@ -69,6 +68,8 @@ func tmpCront() {
 }
 
 func runCront(tmpID string) {
+	fmt.Println(fmt.Sprintf("==========> CRONT RUNNING: %s ", uttime.Now().Format("2006-01-02 15:04:00")))
+
 	tmpCustomPromo, _ := engine.GetCustomPromo(tmpID)
 	conn, err := grpc.Dial(os.Getenv("RPC_NOTIFICATION"), grpc.WithInsecure())
 	if err != nil {

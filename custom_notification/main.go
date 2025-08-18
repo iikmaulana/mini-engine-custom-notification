@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"github.com/iikmaulana/mini-engine/custom_notification/lib"
 	models2 "github.com/iikmaulana/mini-engine/custom_notification/models"
 	"github.com/robfig/cron/v3"
 	"os"
+	"sync"
 	"time"
 
 	//"encoding/json"
@@ -32,7 +34,7 @@ func main() {
 
 func runCronJobs() {
 	s := gocron.NewScheduler(time.Local)
-	_, _ = s.Cron("0 1 * * *").Do(func() {
+	_, _ = s.Cron("59 23 * * *").Do(func() {
 		fmt.Println(fmt.Sprintf("Date : %s =========================> ", uttime.Now().Format("2006-01-02")))
 		tmpCront()
 	})
@@ -41,21 +43,17 @@ func runCronJobs() {
 
 func tmpCront() {
 
-	/*tmpTime := map[string]string{}
+	tmpTime := map[string]string{}
 	tmpData, _ := engine.GetListCustomNotification()
 	for _, v := range tmpData {
 		tmpTime[v.Id] = fmt.Sprintf("%s %s", v.PengirimanBerikutnya, v.TimeCronjob)
 		fmt.Println(fmt.Sprintf("%s ===> %s", v.Id, fmt.Sprintf("%s %s", v.PengirimanBerikutnya, v.TimeCronjob)))
-	}*/
+	}
 
 	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
 	scheduler := cron.New(cron.WithLocation(jakartaTime))
 
-	scheduler.AddFunc("* * * * *", func() {
-		fmt.Println("Running cront")
-	})
-
-	/*for k, v := range tmpTime {
+	for k, v := range tmpTime {
 		tmpK := k
 		tmpV := v
 		tmpTimex, _ := uttime.ParseFromString(tmpV)
@@ -64,11 +62,12 @@ func tmpCront() {
 			runCront(tmpK)
 		})
 	}
-	scheduler.Run()*/
+	scheduler.Run()
 	//runCront("63f65c03-1d60-46bd-816c-5468c9d94d79")
 }
 
 func runCront(tmpId string) {
+	fmt.Println(fmt.Sprintf("==========> CRONT RUNNING: %s ", uttime.Now().Format("2006-01-02 15:04:00")))
 	tmpCustomNotif, _ := engine.GetCustomNotification(tmpId)
 
 	tmpType := ""
@@ -133,51 +132,52 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifId, tmpTitleCustom, tmp
 		return result, err
 	}
 
-	tmpTopic := os.Getenv("FCM_TOPIC")
-	/*tmpToken, _ := engine.GetTokenFirebase()
-	if len(tmpToken) > 0 {
-		const maxBatchSize = 1000
-		for i := 0; i < len(tmpToken); i += maxBatchSize {
-			end := i + maxBatchSize
-			if end > len(tmpToken) {
-				end = len(tmpToken)
+	tmpToken, _ := engine.GetTokenFirebase()
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 10)
+
+	for i, token := range tmpToken {
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func(i int, token string) {
+			defer func() {
+				<-sem
+				wg.Done()
+			}()
+
+			tmpLink := fmt.Sprintf("%s/?globalNotifId=%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifId)
+
+			message := &messaging.Message{
+				Token: token,
+				Data: map[string]string{
+					"environment":     os.Getenv("FCM_ENVIRONMENT"),
+					"id_custom_notif": tmpCustomeNotifId,
+					"title":           tmpTitle,
+					"type_name":       tmpType,
+					"text":            tmpText,
+				},
+				Webpush: &messaging.WebpushConfig{
+					Notification: &messaging.WebpushNotification{
+						Title: tmpTitle,
+						Body:  tmpTitleCustom,
+						Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
+					},
+					FCMOptions: &messaging.WebpushFCMOptions{
+						Link: tmpLink,
+					},
+				},
 			}
-			batch := tmpToken[i:end]
-			if _, errx := client.SubscribeToTopic(ctx, batch, tmpTopic); errx != nil {
-				fmt.Println("error subscribing batch to topic: ", errx.Error())
-				return result, err
+
+			response, err := client.Send(ctx, message)
+			if err != nil {
+				fmt.Println("error sending message: ", err.Error())
 			}
-		}*/
 
-	tmpLink := fmt.Sprintf("%s/?globalNotifId=%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifId)
-
-	message := &messaging.Message{
-		Topic: tmpTopic,
-		Data: map[string]string{
-			"environment":     os.Getenv("FCM_ENVIRONMENT"),
-			"id_custom_notif": tmpCustomeNotifId,
-			"title":           tmpTitle,
-			"type_name":       tmpType,
-			"text":            tmpText,
-		},
-		Webpush: &messaging.WebpushConfig{
-			Notification: &messaging.WebpushNotification{
-				Title: tmpTitle,
-				Body:  tmpTitleCustom,
-				Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
-			},
-			FCMOptions: &messaging.WebpushFCMOptions{
-				Link: tmpLink,
-			},
-		},
+			fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
+		}(i, token)
 	}
-
-	response, err := client.Send(ctx, message)
-	if err != nil {
-		fmt.Println("error sending message: ", err.Error())
-	}
-
-	fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
-	/*}*/
+	wg.Wait()
+	fmt.Println("Done!!!")
 	return "", nil
 }
