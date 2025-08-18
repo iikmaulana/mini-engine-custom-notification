@@ -33,6 +33,12 @@ func main() {
 }
 
 func runCronJobs() {
+
+	go func() {
+		fmt.Println(fmt.Sprintf("Date : %s =========================> ", uttime.Now().Format("2006-01-02")))
+		tmpCront()
+	}()
+
 	s := gocron.NewScheduler(time.Local)
 	_, _ = s.Cron("59 23 * * *").Do(func() {
 		fmt.Println(fmt.Sprintf("Date : %s =========================> ", uttime.Now().Format("2006-01-02")))
