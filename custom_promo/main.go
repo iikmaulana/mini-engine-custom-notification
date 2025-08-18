@@ -30,10 +30,13 @@ func main() {
 	fmt.Println("rpc notification : " + os.Getenv("RPC_NOTIFICATION"))
 
 	tmpCront()
-	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
+	runCronJobs()
+}
 
-	s := gocron.NewScheduler(jakartaTime)
-	_, _ = s.Cron("59 23 * * *").Do(func() {
+func runCronJobs() {
+	s := gocron.NewScheduler(time.Local)
+	_, _ = s.Cron("0 1 * * *").Do(func() {
+		fmt.Println(fmt.Sprintf("Date : %s =========================> ", uttime.Now().Format("2006-01-02")))
 		tmpCront()
 	})
 	s.StartBlocking()
