@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	models2 "github.com/iikmaulana/mini-engine/custom_notification/models"
-	"github.com/iikmaulana/mini-engine/custom_promo/lib"
 	"github.com/robfig/cron/v3"
 	"os"
 	"time"
@@ -27,7 +26,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tmpCront()
+	fmt.Println("ENGINE RUNNING")
 	runCronJobs()
 }
 
@@ -41,19 +40,22 @@ func runCronJobs() {
 }
 
 func tmpCront() {
-	fmt.Println(fmt.Sprintf("Date : %s", uttime.Now().Format("2006-01-02")))
 
-	tmpTime := map[string]string{}
+	/*tmpTime := map[string]string{}
 	tmpData, _ := engine.GetListCustomNotification()
 	for _, v := range tmpData {
 		tmpTime[v.Id] = fmt.Sprintf("%s %s", v.PengirimanBerikutnya, v.TimeCronjob)
 		fmt.Println(fmt.Sprintf("%s ===> %s", v.Id, fmt.Sprintf("%s %s", v.PengirimanBerikutnya, v.TimeCronjob)))
-	}
+	}*/
 
 	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
 	scheduler := cron.New(cron.WithLocation(jakartaTime))
 
-	for k, v := range tmpTime {
+	scheduler.AddFunc("* * * * *", func() {
+		fmt.Println("Running cront")
+	})
+
+	/*for k, v := range tmpTime {
 		tmpK := k
 		tmpV := v
 		tmpTimex, _ := uttime.ParseFromString(tmpV)
@@ -62,7 +64,7 @@ func tmpCront() {
 			runCront(tmpK)
 		})
 	}
-	scheduler.Run()
+	scheduler.Run()*/
 	//runCront("63f65c03-1d60-46bd-816c-5468c9d94d79")
 }
 
@@ -132,7 +134,7 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifId, tmpTitleCustom, tmp
 	}
 
 	tmpTopic := os.Getenv("FCM_TOPIC")
-	tmpToken, _ := engine.GetTokenFirebase()
+	/*tmpToken, _ := engine.GetTokenFirebase()
 	if len(tmpToken) > 0 {
 		const maxBatchSize = 1000
 		for i := 0; i < len(tmpToken); i += maxBatchSize {
@@ -145,37 +147,37 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifId, tmpTitleCustom, tmp
 				fmt.Println("error subscribing batch to topic: ", errx.Error())
 				return result, err
 			}
-		}
+		}*/
 
-		tmpLink := fmt.Sprintf("%s/?globalNotifId=%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifId)
+	tmpLink := fmt.Sprintf("%s/?globalNotifId=%s", os.Getenv("URL_MYFUSO"), tmpCustomeNotifId)
 
-		message := &messaging.Message{
-			Topic: tmpTopic,
-			Data: map[string]string{
-				"environment":     os.Getenv("FCM_ENVIRONMENT"),
-				"id_custom_notif": tmpCustomeNotifId,
-				"title":           tmpTitle,
-				"type_name":       tmpType,
-				"text":            tmpText,
+	message := &messaging.Message{
+		Topic: tmpTopic,
+		Data: map[string]string{
+			"environment":     os.Getenv("FCM_ENVIRONMENT"),
+			"id_custom_notif": tmpCustomeNotifId,
+			"title":           tmpTitle,
+			"type_name":       tmpType,
+			"text":            tmpText,
+		},
+		Webpush: &messaging.WebpushConfig{
+			Notification: &messaging.WebpushNotification{
+				Title: tmpTitle,
+				Body:  tmpTitleCustom,
+				Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
 			},
-			Webpush: &messaging.WebpushConfig{
-				Notification: &messaging.WebpushNotification{
-					Title: tmpTitle,
-					Body:  tmpTitleCustom,
-					Icon:  "https://devvisa.ktbfuso.id/images/ktb_logo.png",
-				},
-				FCMOptions: &messaging.WebpushFCMOptions{
-					Link: tmpLink,
-				},
+			FCMOptions: &messaging.WebpushFCMOptions{
+				Link: tmpLink,
 			},
-		}
-
-		response, err := client.Send(ctx, message)
-		if err != nil {
-			fmt.Println("error sending message: ", err.Error())
-		}
-
-		fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
+		},
 	}
+
+	response, err := client.Send(ctx, message)
+	if err != nil {
+		fmt.Println("error sending message: ", err.Error())
+	}
+
+	fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
+	/*}*/
 	return "", nil
 }
