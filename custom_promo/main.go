@@ -33,6 +33,8 @@ func main() {
 	runCronJobs()
 }
 
+var scheduler *cron.Cron
+
 func runCronJobs() {
 
 	go func() {
@@ -50,6 +52,10 @@ func runCronJobs() {
 
 func tmpCront() {
 
+	if scheduler != nil {
+		scheduler.Stop()
+	}
+
 	tmpTime := map[string]string{}
 	tmpData, _ := engine.GetListCustomPromo()
 	for _, v := range tmpData {
@@ -58,7 +64,7 @@ func tmpCront() {
 	}
 
 	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
-	scheduler := cron.New(cron.WithLocation(jakartaTime))
+	scheduler = cron.New(cron.WithLocation(jakartaTime))
 
 	for k, v := range tmpTime {
 		tmpK := k
@@ -274,6 +280,7 @@ func SendingFCMContent(tmpType, tmpTitle, tmpCustomeNotifID, tmpTitleCustom, tmp
 		fmt.Println(fmt.Sprintf("==========> %s FCM response: %s", uttime.Now().Format("2006-01-02 15:04:00"), response))
 
 	}
+	fmt.Println("Done!!!")
 	return "", nil
 }
 
