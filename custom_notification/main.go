@@ -22,6 +22,8 @@ import (
 	"log"
 )
 
+var scheduler *cron.Cron
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -49,6 +51,11 @@ func runCronJobs() {
 
 func tmpCront() {
 
+	if scheduler != nil {
+		fmt.Println(fmt.Sprintf("SCHEDULER STOP : %s =========================> ", uttime.Now().Format("2006-01-02")))
+		scheduler.Stop()
+	}
+
 	tmpTime := map[string]string{}
 	tmpData, _ := engine.GetListCustomNotification()
 	for _, v := range tmpData {
@@ -57,7 +64,7 @@ func tmpCront() {
 	}
 
 	jakartaTime, _ := time.LoadLocation("Asia/Jakarta")
-	scheduler := cron.New(cron.WithLocation(jakartaTime))
+	scheduler = cron.New(cron.WithLocation(jakartaTime))
 
 	for k, v := range tmpTime {
 		tmpK := k

@@ -21,6 +21,8 @@ import (
 	"time"
 )
 
+var scheduler *cron.Cron
+
 func main() {
 	err := godotenv.Load("custom_promo/.env")
 	if err != nil {
@@ -32,8 +34,6 @@ func main() {
 	fmt.Println("ENGINE RUNNING")
 	runCronJobs()
 }
-
-var scheduler *cron.Cron
 
 func runCronJobs() {
 
@@ -53,6 +53,7 @@ func runCronJobs() {
 func tmpCront() {
 
 	if scheduler != nil {
+		fmt.Println(fmt.Sprintf("SCHEDULER STOP : %s =========================> ", uttime.Now().Format("2006-01-02")))
 		scheduler.Stop()
 	}
 
